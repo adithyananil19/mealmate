@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const Order = require('../models/Order'); // Ensure Order model is imported
+const Order = require('../models/Order');
 
 // User login using university ID
 const loginUser = async (req, res) => {
@@ -14,7 +14,20 @@ const loginUser = async (req, res) => {
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token, user });
+        
+        // Send only necessary user data without password
+        res.json({ 
+            token, 
+            user: {
+                _id: user._id,
+                name: user.name,
+                universityId: user.universityId,
+                email: user.email,
+                role: user.role,
+                userType: user.userType,
+                isApproved: user.isApproved
+            } 
+        });
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
@@ -25,7 +38,12 @@ const getUserByUniversityId = async (req, res) => {
     try {
         const user = await User.findOne({ universityId: req.params.universityId });
         if (!user) return res.status(404).json({ message: 'User not found' });
-        res.json(user);
+        
+        // Remove password from response
+        const userData = user.toObject();
+        delete userData.password;
+        
+        res.json(userData);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
@@ -54,12 +72,17 @@ const registerUser = async (req, res) => {
             password: hashedPassword,
             role,
             userType: userType || "regular",
-            isApproved: userType === "regular",
+            isApproved: userType === "regular", // Regular users are auto-approved
             photo: req.file.filename // Store the filename in MongoDB
         });
 
         await newUser.save();
-        res.status(201).json({ message: "User registered successfully", user: newUser });
+        
+        // Remove password from response
+        const userData = newUser.toObject();
+        delete userData.password;
+        
+        res.status(201).json({ message: "User registered successfully", user: userData });
 
     } catch (error) {
         console.error(error);
@@ -67,24 +90,26 @@ const registerUser = async (req, res) => {
     }
 };
 
-// Approve an order
+// Approve an order - Use OrderController's approach instead, remove this duplicated function
+// If you need admin order approval logic, redirect to OrderController
 const approveOrder = async (req, res) => {
     try {
-        const { orderId, status } = req.body;
-        if (!['approved', 'rejected'].includes(status)) {
-            return res.status(400).json({ message: "Invalid status value" });
-        }
-
-        const order = await Order.findByIdAndUpdate(orderId, { approvalStatus: status }, { new: true });
+        const { orderId } = req.body;
+        
+        const order = await Order.findById(orderId);
         if (!order) return res.status(404).json({ message: "Order not found" });
 
-        res.json({ message: `Order ${status} successfully`, order });
+        order.status = "approved";
+        order.qrToken = `QR-${order._id}-${Date.now()}`;
+        await order.save();
+
+        res.status(200).json({ message: "Order approved", qrToken: order.qrToken });
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
     }
 };
 
-// Approve occasional users
+// Approve non-regular users
 const approveUser = async (req, res) => {
     try {
         const { universityId } = req.params;
@@ -92,7 +117,7 @@ const approveUser = async (req, res) => {
         const user = await User.findOne({ universityId });
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        if (user.userType !== "occasional") {
+        if (user.userType !== "non-regular") {  // Changed from "occasional" to "non-regular"
             return res.status(400).json({ message: "Regular users do not need approval" });
         }
 
@@ -119,7 +144,7 @@ const getUserPhoto = async (req, res) => {
     }
 };
 
-// ✅ Export all functions correctly
+// Export all functions correctly
 module.exports = {
     loginUser,
     getUserByUniversityId,

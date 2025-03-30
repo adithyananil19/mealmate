@@ -1,12 +1,12 @@
 const express = require("express");
-const { getMeals, getMealById, createMeal, updateMeal, deleteMeal } = require("../controllers/mealController");
-
 const router = express.Router();
+const mealController = require("../controllers/mealController");
 
-router.get("/", getMeals);
-router.get("/:id", getMealById);
-router.post("/", createMeal);  // This is where the error occurs if undefined
-router.put("/:id", updateMeal);
-router.delete("/:id", deleteMeal);
+// ✅ Apply `uploadMealPhoto` middleware for image handling
+router.get("/", mealController.getMeals);
+router.get("/:id", mealController.getMealById);
+router.post("/", mealController.uploadMealPhoto, mealController.createMeal);
+router.put("/:id", mealController.uploadMealPhoto, mealController.updateMeal);
+router.delete("/:id", mealController.deleteMeal);
 
 module.exports = router;

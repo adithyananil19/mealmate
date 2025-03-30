@@ -1,22 +1,26 @@
 const express = require("express");
 const { 
-    createOrUpdateOrder,  // ✅ Make sure this matches the function in the controller
+    createOrUpdateOrder,
     getOrders, 
     getOrderById, 
     updateOrder, 
     deleteOrder, 
     approveOrder, 
-    markOrderPaid  
+    markOrderPaid,
+    getOrderByQR,
+    updatePayment
 } = require("../controllers/orderController");
 
 const router = express.Router();
 
-router.post("/", createOrUpdateOrder); // ✅ Corrected function name
+router.post("/", createOrUpdateOrder);
 router.get("/", getOrders);
 router.get("/:id", getOrderById);
 router.put("/:id", updateOrder);
 router.delete("/:id", deleteOrder);
-router.post("/approve", approveOrder);
+router.post("/approve/:orderId", approveOrder); // Fixed to use orderId param
 router.post("/mark-paid/:orderId", markOrderPaid);
+router.get("/qr/:qrToken", getOrderByQR); // Added missing route
+router.post("/payment", updatePayment); // Added missing route
 
 module.exports = router;

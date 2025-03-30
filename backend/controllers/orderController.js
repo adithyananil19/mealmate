@@ -1,6 +1,8 @@
 const Order = require("../models/Order");
 const Meal = require("../models/Meal");
-const User = require("../models/User"); // ✅ Add missing User import
+const User = require("../models/User");
+const Transaction = require("../models/Transaction"); // Added missing Transaction import
+const Penalty = require("../models/Penalty");
 
 // Create an order
 const createOrUpdateOrder = async (req, res) => {
@@ -11,7 +13,17 @@ const createOrUpdateOrder = async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        if (user.isPenalized) return res.status(403).json({ message: "User is penalized. Contact admin for penalty removal." });
+        // Check if user has unpaid penalties (alternative to isPenalized flag)
+        const unpaidPenalties = await Penalty.find({ 
+            universityId: user.universityId, 
+            status: "pending" 
+        });
+        
+        if (unpaidPenalties.length > 0) 
+            return res.status(403).json({ 
+                message: "User has unpaid penalties. Please clear penalties before placing new orders.",
+                penalties: unpaidPenalties
+            });
 
         let totalPrice = 0;
         for (const item of cart) {
@@ -29,7 +41,6 @@ const createOrUpdateOrder = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-
 
 // Get all orders
 const getOrders = async (req, res) => {
@@ -90,9 +101,7 @@ const approveOrder = async (req, res) => {
     }
 };
 
-
-
-// ✅ Mark Order as Paid
+// Mark Order as Paid
 const markOrderPaid = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -102,7 +111,7 @@ const markOrderPaid = async (req, res) => {
         const order = await Order.findById(orderId);
         if (!order) return res.status(404).json({ message: "Order not found" });
 
-        if (order.isPaid) return res.status(400).json({ message: "Order already paid" });
+        if (order.status === "paid") return res.status(400).json({ message: "Order already paid" });
 
         // Create a new transaction
         const transaction = new Transaction({
@@ -111,13 +120,12 @@ const markOrderPaid = async (req, res) => {
             amount: order.totalPrice,
             paymentMethod,
             upiTransactionId: paymentMethod === "upi" ? upiTransactionId : null,
-            upiStatus: paymentMethod === "upi" ? upiStatus : null,
+            paymentTime: new Date()
         });
 
         await transaction.save();
 
         // Update order as paid
-        order.isPaid = true;
         order.paymentMethod = paymentMethod;
         order.paymentTime = transaction.paymentTime;
         order.status = "paid";
@@ -143,7 +151,7 @@ const getOrderByQR = async (req, res) => {
             orderId: order._id,
             userName: order.userId.name,
             userId: order.userId._id,
-            userPhoto: order.userId.photo, // Ensure user has a photo field
+            userPhoto: order.userId.photo,
             cart: order.cart.map(item => ({
                 mealName: item.mealId.name,
                 quantity: item.quantity,
@@ -188,15 +196,15 @@ const updatePayment = async (req, res) => {
     }
 };
 
-
-// ✅ Export all functions properly
+// Export all functions properly
 module.exports = {
-    createOrUpdateOrder,  // ✅ Use this instead of createOrder
+    createOrUpdateOrder,
     getOrders,
     getOrderById,
     updateOrder,
     deleteOrder,
     approveOrder,
-    markOrderPaid
+    markOrderPaid,
+    getOrderByQR,      // Added missing exports
+    updatePayment      // Added missing exports
 };
-

@@ -1,23 +1,23 @@
 import React from "react";
+import { Routes, Route } from "react-router-dom"; // ✅ Only import what you use
 
-import { useEffect, useState } from "react";
-import axios from "axios";
+import LandingPage from "./pages/LandingPage";
+import MenuPage from "./pages/MenuPage";
+import LoginPage from "./pages/LoginPage";
+import SignUpPage from "./pages/SignUpPage";
 
 function App() {
-    const [data, setData] = useState(null);
-
-    useEffect(() => {
-        axios.get("http://localhost:5000/api/orders") // Change to your backend API
-            .then(response => setData(response.data))
-            .catch(error => console.error("Error fetching:", error));
-    }, []);
-
-    return (
-        <div>
-            <h1>Orders</h1>
-            {data ? <pre>{JSON.stringify(data, null, 2)}</pre> : <p>Loading...</p>}
-        </div>
+  return (
+    
+        <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/menu" element={<MenuPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
+        </Routes>
+    
     );
+    
 }
 
 export default App;

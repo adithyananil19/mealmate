@@ -1,11 +1,12 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const MealSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    description: { type: String },
     price: { type: Number, required: true },
-    availability: { type: Boolean, default: true }
+    availability: { type: Boolean, default: true },
+    category: { type: String, required: true },
+    description: { type: String },
+    photo: { type: String } // Stores the uploaded image filename
 });
 
-const Meal = mongoose.model('Meal', MealSchema);
-module.exports = Meal;
+module.exports = mongoose.model("Meal", MealSchema);
