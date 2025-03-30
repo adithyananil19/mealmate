@@ -1,14 +1,19 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const OrderSchema = new mongoose.Schema({
-    universityId: { type: String, required: true },
-    mealId: { type: mongoose.Schema.Types.ObjectId, ref: 'Meal', required: true },
-    quantity: { type: Number, required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    cart: [
+        {
+            mealId: { type: mongoose.Schema.Types.ObjectId, ref: "Meal", required: true },
+            quantity: { type: Number, required: true },
+        }
+    ],
     totalPrice: { type: Number, required: true },
-    status: { type: String, enum: ['pending', 'completed', 'cancelled'], default: 'pending' },
-    approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' }, // New field
-    createdAt: { type: Date, default: Date.now }
+    status: { type: String, enum: ["pending", "approved", "paid", "closed"], default: "pending" },
+    qrToken: { type: String, default: null }, // Generated after approval
+    paymentMethod: { type: String, enum: ["cash", "upi"], required: false },
+    paymentTime: { type: Date, default: null }, // Payment timestamp
+    createdAt: { type: Date, default: Date.now },
 });
 
-const Order = mongoose.model('Order', OrderSchema);
-module.exports = Order;
+module.exports = mongoose.model("Order", OrderSchema);
