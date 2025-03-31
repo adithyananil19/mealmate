@@ -7,6 +7,8 @@ import MenuPage from "./pages/MenuPage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 
+import AdminPage from "./pages/AdminPage";
+
 
 // Add this axios configuration somewhere in your app
 axios.interceptors.request.use(
@@ -31,6 +33,7 @@ function AnimatedRoutes() {
              <Route path="/login" element={<LoginPage />} />
              <Route path="/" element={<LandingPage />} />
              <Route path="/menu" element={<MenuPage />} />
+             <Route path="/admin/dashboard" element={<AdminPage />} />
          
         </Routes>
       </AnimatePresence>

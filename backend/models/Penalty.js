@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const PenaltySchema = new mongoose.Schema({
-    universityId: { type: String, required: true }, // Reference to user
+    userId: { type: String, required: true }, // Reference to user
     reason: { type: String, required: true },
     amount: { type: Number, required: true },
     status: { type: String, enum: ["pending", "paid"], default: "pending" },

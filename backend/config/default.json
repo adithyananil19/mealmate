@@ -1,0 +1,4 @@
+{
+    "mongoURI": "mongodb+srv://campuscafe:campuscafe123@campuscafe.u8xbw.mongodb.net/?retryWrites=true&w=majority&appName=CampusCafe",
+    "jwtSecret": "yourSuperSecretKey123!@#"
+  }

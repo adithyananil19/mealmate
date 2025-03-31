@@ -151,10 +151,10 @@ const MenuPage = () => {
       setTokenHistory(formattedOrders);
       setIsLoading(false);
     } catch (error) {
-      console.error('Error fetching orders:', error);
-      setIsLoading(false);
-    }
-  };
+    console.error('Error fetching orders:', error);
+    setIsLoading(false);
+      }
+    };
   
   const categories = ['Hot Dishes', 'Cold Dishes', 'Soup', 'Grill', 'Appetizer', 'Dessert'];
   

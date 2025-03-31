@@ -129,11 +129,11 @@ const handleSubmit = async (e) => {
           {/* Main content */}
           <div className="flex-1 p-8 flex">
             {/* Left side - Image */}
-            <div className="w-2/5 bg-gray-100 rounded-xl flex items-center justify-center p-4 mr-8">
+            <div className="w-2/5 bg-gray-100 rounded-xl flex items-center justify-center py-20 px-0 mr-8 h-full">
               <img 
-                src="/api/placeholder/280/380" 
+                src={require(".//assets/images/signup.png")} 
                 alt="Sign up illustration" 
-                className="max-w-full"
+                className="w-full h-full object-contain  object-center"
               />
             </div>
             

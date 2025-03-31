@@ -10,6 +10,7 @@ const LoginPage = () => {
   const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
   const [loginStatus, setLoginStatus] = useState({ message: "", isError: false });
   const [isLoading, setIsLoading] = useState(false);
+  const [isAdminMode, setIsAdminMode] = useState(false);
   const navigate = useNavigate();
 
   const togglePasswordVisibility = () => {
@@ -20,17 +21,38 @@ const LoginPage = () => {
     setIsMenuCollapsed(!isMenuCollapsed);
   };
 
+  const toggleAdminMode = () => {
+    setIsAdminMode(!isAdminMode);
+    // Clear credentials when switching modes
+    setUniversityId("");
+    setPassword("");
+    // Clear any previous login status messages
+    setLoginStatus({ message: "", isError: false });
+  };
+
   // Define the handleSuccessfulLogin function
   const handleSuccessfulLogin = (userData) => {
     // Store user data in localStorage
     localStorage.setItem('user', JSON.stringify(userData));
     
+    // Store isAdmin flag separately for easier access
+    localStorage.setItem('isAdmin', userData.isAdmin || false);
+    
     // Dispatch event to notify other components
     window.dispatchEvent(new Event('loginStatusChanged'));
     
-    // Redirect back to the previous page or home
-    const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/menu';
-    sessionStorage.removeItem('redirectAfterLogin'); // Clear it after use
+    // Redirect based on login type
+    let redirectPath = '/menu';
+    
+    // If admin login, redirect to admin dashboard
+    if (userData.isAdmin) {
+      redirectPath = '/admin/dashboard';
+    } else {
+      // Use stored redirect path or default to menu
+      redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/menu';
+      sessionStorage.removeItem('redirectAfterLogin'); // Clear it after use
+    }
+    
     navigate(redirectPath);
   };
 
@@ -40,7 +62,7 @@ const LoginPage = () => {
     // Form validation
     if (!universityId || !password) {
       setLoginStatus({
-        message: "Please enter both University ID and password",
+        message: "Please enter both " + (isAdminMode ? "Admin ID" : "University ID") + " and password",
         isError: true
       });
       return;
@@ -49,23 +71,22 @@ const LoginPage = () => {
     setIsLoading(true);
     setLoginStatus({ message: "", isError: false });
     
-    const loginData = { universityId, password };
+    const loginData = { universityId, password, isAdmin: isAdminMode };
     try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
+      // Use the appropriate endpoint based on login type
+      const endpoint = isAdminMode 
+        ? "http://localhost:5000/api/auth/admin/login" 
+        : "http://localhost:5000/api/auth/login";
+        
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(loginData),
       });
+      
       const data = await response.json();
       
       if (response.ok) {
-        // Create a user object with the data you want to store
-        const userData = {
-          name: data.name || "User", // Use the name from the response or default to "User"
-          uniId: universityId,
-          // Add any other user data you need
-        };
-        
         // Store token
         localStorage.setItem("token", data.token);
         
@@ -74,8 +95,8 @@ const LoginPage = () => {
           isError: false
         });
         
-        // Call the handleSuccessfulLogin function instead of directly redirecting
-        handleSuccessfulLogin(userData);
+        // Call the handleSuccessfulLogin function with the user data from response
+        handleSuccessfulLogin(data.user);
       } else {
         setLoginStatus({
           message: data.message || "Login failed. Please try again.",
@@ -145,8 +166,14 @@ const LoginPage = () => {
           {/* Main content */}
           <div className="flex-1 p-8 flex">
             <div className="w-3/5 pr-8">
-              <h1 className="text-4xl font-bold text-gray-800 mb-2">Login</h1>
-              <p className="text-gray-600 mb-8">Login to access your CAMPUSCAFE account</p>
+              <h1 className="text-4xl font-bold text-gray-800 mb-2">
+                {isAdminMode ? "Admin Login" : "Login"}
+              </h1>
+              <p className="text-gray-600 mb-8">
+                {isAdminMode 
+                  ? "Login to access your CAMPUSCAFE admin panel" 
+                  : "Login to access your CAMPUSCAFE account"}
+              </p>
               
               {/* Login status message */}
               {loginStatus.message && (
@@ -158,10 +185,12 @@ const LoginPage = () => {
               {/* Login form */}
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
-                  <label className="block text-sm mb-1">University ID</label>
+                  <label className="block text-sm mb-1">
+                    {isAdminMode ? "Admin ID" : "University ID"}
+                  </label>
                   <input 
                     type="text" 
-                    placeholder="CCE23CS095" 
+                    placeholder={isAdminMode ? "ADMIN001" : "CCE23CS095"} 
                     className="w-full p-3 border border-gray-300 rounded-md"
                     value={universityId}
                     onChange={(e) => setUniversityId(e.target.value)}
@@ -197,7 +226,7 @@ const LoginPage = () => {
                 
                 <button 
                   type="submit" 
-                  className="w-full bg-blue-600 text-white p-3 rounded-md font-medium mb-4 flex justify-center items-center"
+                  className={`w-full ${isAdminMode ? 'bg-red-600' : 'bg-blue-600'} text-white p-3 rounded-md font-medium mb-4 flex justify-center items-center`}
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -206,28 +235,43 @@ const LoginPage = () => {
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                   ) : null}
-                  {isLoading ? "Logging in..." : "Login"}
+                  {isLoading ? "Logging in..." : (isAdminMode ? "Login as Admin" : "Login")}
                 </button>
                 
-                <p className="text-center text-sm text-gray-600 mb-6">
-                  Don't have an account? <a href="/signup" className="text-red-400">Sign up</a>
+                {/* Admin login toggle */}
+                <p className="text-center text-sm text-gray-600 mb-4">
+                  <button 
+                    type="button" 
+                    onClick={toggleAdminMode} 
+                    className="text-blue-500 hover:underline"
+                  >
+                    {isAdminMode ? "Switch to Student Login" : "Switch to Admin Login"}
+                  </button>
                 </p>
                 
-                <div className="text-center text-sm text-gray-500 mb-4">Or login with</div>
-                
-                <button type="button" className="w-full border border-gray-300 p-3 rounded-md flex items-center justify-center">
-                  <svg width="20" height="20" viewBox="0 0 24 24" className="text-center">
-                    <path d="M12.545, 10.239v3.821h5.445c-0.712, 2.315-2.647, 3.972-5.445, 3.972-3.332, 0-6.033-2.701-6.033-6.032s2.701-6.032, 6.033-6.032c1.498, 0, 2.866, 0.549, 3.921, 1.453l2.814-2.814C17.503, 2.988, 15.139, 2, 12.545, 2 7.021, 2, 2.543, 6.477, 2.543, 12s4.478, 10, 10.002, 10c8.396, 0, 10.249-7.85, 9.426-11.748l-9.426, -0.013z" fill="#4285F4"/>
-                  </svg>
-                </button>
+                {!isAdminMode && (
+                  <>
+                    <p className="text-center text-sm text-gray-600 mb-6">
+                      Don't have an account? <a href="/signup" className="text-red-400">Sign up</a>
+                    </p>
+                    
+                    <div className="text-center text-sm text-gray-500 mb-4">Or login with</div>
+                    
+                    <button type="button" className="w-full border border-gray-300 p-3 rounded-md flex items-center justify-center">
+                      <svg width="20" height="20" viewBox="0 0 24 24" className="text-center">
+                        <path d="M12.545, 10.239v3.821h5.445c-0.712, 2.315-2.647, 3.972-5.445, 3.972-3.332, 0-6.033-2.701-6.033-6.032s2.701-6.032, 6.033-6.032c1.498, 0, 2.866, 0.549, 3.921, 1.453l2.814-2.814C17.503, 2.988, 15.139, 2, 12.545, 2 7.021, 2, 2.543, 6.477, 2.543, 12s4.478, 10, 10.002, 10c8.396, 0, 10.249-7.85, 9.426-11.748l-9.426, -0.013z" fill="#4285F4"/>
+                      </svg>
+                    </button>
+                  </>
+                )}
               </form>
             </div>
             
             <div className="w-2/5 bg-gray-100 rounded-xl flex items-center justify-center p-4">
               <img 
-                src="/api/placeholder/280/360" 
+                src={require("./assets/images/login.png")} 
                 alt="Secure login illustration" 
-                className="max-w-full"
+                className="w-full h-full object-contain object-center"
               />
             </div>
           </div>
