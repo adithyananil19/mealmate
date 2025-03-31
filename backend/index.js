@@ -1,10 +1,13 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-require("dotenv").config();
 const multer = require("multer");
 const { GridFsStorage } = require("multer-gridfs-storage");
 const { GridFSBucket } = require("mongodb");
+const dotenv = require("dotenv");
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 
@@ -12,9 +15,9 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Connect to MongoDB
+// MongoDB Connection (just once)
 mongoose
-  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true,useCreateIndex: true,useFindAndModify: false })
   .then(() => console.log("✅ Connected to MongoDB Atlas"))
   .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
@@ -76,11 +79,14 @@ app.get("/image/:filename", async (req, res) => {
 });
 
 // Routes (Import After Middleware)
+const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const mealRoutes = require("./routes/mealRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const penaltyRoutes = require("./routes/penaltyRoutes");
 
+// Use Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/meals", mealRoutes);
 app.use("/api/orders", orderRoutes);
@@ -92,17 +98,6 @@ app.get("/", (req, res) => {
 });
 
 // Global Error Handler
-app.use((err, req, res, next) => {
-    console.error("🔥 Global Error:", err);
-    res.status(500).json({ message: "Unexpected server error", error: err.message });
-});
-
-// Start Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-});
-
 const errorHandler = (err, req, res, next) => {
     console.error("🔥 Error Details:", {
         message: err.message,
@@ -125,4 +120,20 @@ const errorHandler = (err, req, res, next) => {
     });
 };
 
-module.exports = errorHandler;
+app.use(errorHandler);
+// Serve static assets in production
+if (process.env.NODE_ENV === 'production') {
+    // Set static folder
+    app.use(express.static('client/build'));
+  
+    app.get('*', (req, res) => {
+      res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
+    });
+  }
+
+// Start Server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌐 Server available at: http://localhost:${PORT}`);
+});

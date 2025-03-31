@@ -1,19 +1,74 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-const OrderSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    cart: [
-        {
-            mealId: { type: mongoose.Schema.Types.ObjectId, ref: "Meal", required: true },
-            quantity: { type: Number, required: true },
-        }
-    ],
-    totalPrice: { type: Number, required: true },
-    status: { type: String, enum: ["pending", "approved", "paid", "closed"], default: "pending" },
-    qrToken: { type: String, default: null }, // Generated after approval
-    paymentMethod: { type: String, enum: ["cash", "upi"], required: false },
-    paymentTime: { type: Date, default: null }, // Payment timestamp
-    createdAt: { type: Date, default: Date.now },
+// Define the schema for cart items within an order
+const CartItemSchema = new Schema({
+  mealId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Meal',  // Reference to your Meal model if you have one
+    required: true
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1
+  }
 });
 
-module.exports = mongoose.model("Order", OrderSchema);
+// Define the main Order schema
+const OrderSchema = new Schema({
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',  // Reference to your User model
+    required: true
+  },
+  cart: {
+    type: [CartItemSchema],
+    required: true,
+    validate: {
+      validator: function(v) {
+        return Array.isArray(v) && v.length > 0;
+      },
+      message: 'An order must have at least one item'
+    }
+  },
+  totalPrice: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', 'completed', 'paid', 'closed'],
+    default: 'pending'
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['cash', 'credit', 'debit', 'mobile', null],
+    default: null
+  },
+  paymentTime: {
+    type: Date,
+    default: null
+  },
+  qrToken: {
+    type: String,
+    default: null
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Update the updatedAt field on save
+OrderSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
+
+module.exports = mongoose.model('Order', OrderSchema);

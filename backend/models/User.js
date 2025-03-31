@@ -8,7 +8,7 @@ const UserSchema = new mongoose.Schema({
     role: { type: String, enum: ["admin", "user"], default: "user" },
     userType: { type: String, enum: ["regular", "non-regular"], default: "regular" }, // Changed from "occasional" to match the checks
     isApproved: { type: Boolean, default: false },
-    photo: { type: String, required: true }, // Store the filename from GridFS
+    photo: { type: String, required: false }, // Store the filename from GridFS
     createdAt: { type: Date, default: Date.now }
 });
 
