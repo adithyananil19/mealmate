@@ -1,4 +1,4 @@
 {
-    "mongoURI": "mongodb+srv://campuscafe:campuscafe123@campuscafe.u8xbw.mongodb.net/?retryWrites=true&w=majority&appName=CampusCafe",
+    "mongoURI": "mongodb+srv://adithyananil19_db_user:tci9xrY6I71PoaVX@mealmate-cluster.lgdgllm.mongodb.net/?retryWrites=true&w=majority&appName=mealmate-cluster",
     "jwtSecret": "yourSuperSecretKey123!@#"
   }

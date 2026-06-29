@@ -1,283 +1,265 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import PageTransition from './PageTransition';
+import { motion } from 'framer-motion';
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [password, setPassword] = useState("");
-  const [universityId, setUniversityId] = useState("");
-  const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
-  const [loginStatus, setLoginStatus] = useState({ message: "", isError: false });
+  const [password, setPassword] = useState('');
+  const [universityId, setUniversityId] = useState('');
+  const [loginStatus, setLoginStatus] = useState({ message: '', isError: false });
   const [isLoading, setIsLoading] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const navigate = useNavigate();
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const toggleMenu = () => {
-    setIsMenuCollapsed(!isMenuCollapsed);
-  };
-
-  const toggleAdminMode = () => {
-    setIsAdminMode(!isAdminMode);
-    // Clear credentials when switching modes
-    setUniversityId("");
-    setPassword("");
-    // Clear any previous login status messages
-    setLoginStatus({ message: "", isError: false });
-  };
-
-  // Define the handleSuccessfulLogin function
   const handleSuccessfulLogin = (userData) => {
-    // Store user data in localStorage
     localStorage.setItem('user', JSON.stringify(userData));
-    
-    // Store isAdmin flag separately for easier access
     localStorage.setItem('isAdmin', userData.isAdmin || false);
-    
-    // Dispatch event to notify other components
     window.dispatchEvent(new Event('loginStatusChanged'));
-    
-    // Redirect based on login type
-    let redirectPath = '/menu';
-    
-    // If admin login, redirect to admin dashboard
     if (userData.isAdmin) {
-      redirectPath = '/admin/dashboard';
+      navigate('/admin/dashboard');
     } else {
-      // Use stored redirect path or default to menu
-      redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/menu';
-      sessionStorage.removeItem('redirectAfterLogin'); // Clear it after use
+      navigate(sessionStorage.getItem('redirectAfterLogin') || '/menu');
+      sessionStorage.removeItem('redirectAfterLogin');
     }
-    
-    navigate(redirectPath);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Form validation
     if (!universityId || !password) {
-      setLoginStatus({
-        message: "Please enter both " + (isAdminMode ? "Admin ID" : "University ID") + " and password",
-        isError: true
-      });
+      setLoginStatus({ message: 'Please fill in all fields', isError: true });
       return;
     }
-    
     setIsLoading(true);
-    setLoginStatus({ message: "", isError: false });
-    
-    const loginData = { universityId, password, isAdmin: isAdminMode };
+    setLoginStatus({ message: '', isError: false });
+
+    const endpoint = isAdminMode
+      ? 'http://localhost:5000/api/auth/admin/login'
+      : 'http://localhost:5000/api/auth/login';
+
     try {
-      // Use the appropriate endpoint based on login type
-      const endpoint = isAdminMode 
-        ? "http://localhost:5000/api/auth/admin/login" 
-        : "http://localhost:5000/api/auth/login";
-        
       const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(loginData),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ universityId, password }),
       });
-      
       const data = await response.json();
-      
+
       if (response.ok) {
-        // Store token
-        localStorage.setItem("token", data.token);
-        
-        setLoginStatus({
-          message: "Login successful! Redirecting...",
-          isError: false
-        });
-        
-        // Call the handleSuccessfulLogin function with the user data from response
-        handleSuccessfulLogin(data.user);
+        localStorage.setItem('token', data.token);
+        setLoginStatus({ message: 'Login successful! Redirecting...', isError: false });
+        setTimeout(() => handleSuccessfulLogin(data.user), 500);
       } else {
-        setLoginStatus({
-          message: data.message || "Login failed. Please try again.",
-          isError: true
-        });
+        setLoginStatus({ message: data.message || 'Login failed. Please try again.', isError: true });
       }
-    } catch (error) {
-      console.error("Error logging in:", error);
-      setLoginStatus({
-        message: "Cannot connect to server. Please check your connection and try again.",
-        isError: true
-      });
+    } catch {
+      setLoginStatus({ message: 'Cannot connect to server. Please try again.', isError: true });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <PageTransition>
-      <div className="min-h-screen bg-rose-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-4xl bg-white rounded-3xl shadow-lg overflow-hidden flex">
-          {/* Left sidebar */}
-          <div className={`${isMenuCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-gray-200 p-6 flex flex-col transition-all duration-300 relative`}>
-            <div className="flex items-center mb-12">
-              <button className="mr-4" onClick={toggleMenu}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="3" y1="12" x2="21" y2="12"></line>
-                  <line x1="3" y1="6" x2="21" y2="6"></line>
-                  <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-              </button>
-              {!isMenuCollapsed && (
-                <div className="flex items-center">
-                  <div className="h-8 w-8 bg-gray-800 rounded-full flex items-center justify-center relative">
-                    <div className="h-6 w-6 bg-white rounded-full absolute right-0 bottom-0 mr-1 mb-1"></div>
-                    <span className="text-white font-bold relative z-10">C</span>
-                  </div>
-                  <div className="ml-2">
-                    <span className="font-semibold text-gray-800">CAMPUS</span>
-                    <span className="block text-gray-500 text-xs">CAFE</span>
-                  </div>
-                </div>
-              )}
+    <div className="min-h-screen bg-stone-950 flex font-outfit">
+      {/* Left panel */}
+      <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-gradient-to-br from-stone-900 via-stone-900 to-stone-950">
+        {/* Animated gradient blobs */}
+        <div className="absolute top-0 left-0 w-80 h-80 bg-orange-600/30 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-72 h-72 bg-amber-500/20 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
+        <div className="absolute top-1/2 left-1/2 w-60 h-60 bg-orange-800/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-between p-12 w-full">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-xl font-bold">
+              M
             </div>
-            
-            {/* Navigation items */}
-            <nav className="flex flex-col space-y-4 mt-8">
-              <a href="/login" className="flex items-center text-orange-400 font-medium relative group">
-                <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                </svg>
-                {!isMenuCollapsed && "Sign In"}
-                <div className="w-1 h-8 bg-orange-400 absolute -right-6 rounded-l"></div>
-              </a>
-              <a href="/signup" className="flex items-center text-gray-600 font-medium">
-                <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                {!isMenuCollapsed && "Sign Up"}
-              </a>
-            </nav>
+            <div>
+              <div className="font-bold text-xl">MealMate</div>
+              <div className="text-xs text-stone-500 tracking-widest uppercase">Campus Cafe</div>
+            </div>
           </div>
-          
-          {/* Main content */}
-          <div className="flex-1 p-8 flex">
-            <div className="w-3/5 pr-8">
-              <h1 className="text-4xl font-bold text-gray-800 mb-2">
-                {isAdminMode ? "Admin Login" : "Login"}
-              </h1>
-              <p className="text-gray-600 mb-8">
-                {isAdminMode 
-                  ? "Login to access your CAMPUSCAFE admin panel" 
-                  : "Login to access your CAMPUSCAFE account"}
+
+          <div>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+            >
+              <div className="text-7xl mb-8">
+                {isAdminMode ? '🛡️' : '🍽️'}
+              </div>
+              <h2 className="text-4xl font-bold leading-tight mb-4">
+                {isAdminMode
+                  ? 'Manage Your\nCanteen'
+                  : 'Order Ahead,\nEat Better'}
+              </h2>
+              <p className="text-stone-400 text-lg leading-relaxed">
+                {isAdminMode
+                  ? 'Access the admin dashboard to manage orders, menu, and inventory.'
+                  : 'Pre-order your meals and skip the queue. Get your unique code and collect at the counter.'}
               </p>
-              
-              {/* Login status message */}
-              {loginStatus.message && (
-                <div className={`p-3 mb-4 rounded-md ${loginStatus.isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                  {loginStatus.message}
-                </div>
-              )}
-              
-              {/* Login form */}
-              <form onSubmit={handleSubmit}>
-                <div className="mb-4">
-                  <label className="block text-sm mb-1">
-                    {isAdminMode ? "Admin ID" : "University ID"}
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder={isAdminMode ? "ADMIN001" : "CCE23CS095"} 
-                    className="w-full p-3 border border-gray-300 rounded-md"
-                    value={universityId}
-                    onChange={(e) => setUniversityId(e.target.value)}
-                  />
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-sm mb-1">Password</label>
-                  <div className="relative">
-                    <input 
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-md"
-                    />
-                    <button 
-                      type="button" 
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                      onClick={togglePasswordVisibility}
-                    >
-                      {showPassword ? <EyeOff size={20} className="text-gray-500" /> : <Eye size={20} className="text-gray-500" />}
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center">
-                    <input type="checkbox" id="remember" className="mr-2" />
-                    <label htmlFor="remember" className="text-sm text-gray-600">Remember me</label>
-                  </div>
-                  <a href="#" className="text-sm text-red-400">Forgot Password</a>
-                </div>
-                
-                <button 
-                  type="submit" 
-                  className={`w-full ${isAdminMode ? 'bg-red-600' : 'bg-blue-600'} text-white p-3 rounded-md font-medium mb-4 flex justify-center items-center`}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  ) : null}
-                  {isLoading ? "Logging in..." : (isAdminMode ? "Login as Admin" : "Login")}
-                </button>
-                
-                {/* Admin login toggle */}
-                <p className="text-center text-sm text-gray-600 mb-4">
-                  <button 
-                    type="button" 
-                    onClick={toggleAdminMode} 
-                    className="text-blue-500 hover:underline"
-                  >
-                    {isAdminMode ? "Switch to Student Login" : "Switch to Admin Login"}
-                  </button>
-                </p>
-                
-                {!isAdminMode && (
-                  <>
-                    <p className="text-center text-sm text-gray-600 mb-6">
-                      Don't have an account? <a href="/signup" className="text-red-400">Sign up</a>
-                    </p>
-                    
-                    <div className="text-center text-sm text-gray-500 mb-4">Or login with</div>
-                    
-                    <button type="button" className="w-full border border-gray-300 p-3 rounded-md flex items-center justify-center">
-                      <svg width="20" height="20" viewBox="0 0 24 24" className="text-center">
-                        <path d="M12.545, 10.239v3.821h5.445c-0.712, 2.315-2.647, 3.972-5.445, 3.972-3.332, 0-6.033-2.701-6.033-6.032s2.701-6.032, 6.033-6.032c1.498, 0, 2.866, 0.549, 3.921, 1.453l2.814-2.814C17.503, 2.988, 15.139, 2, 12.545, 2 7.021, 2, 2.543, 6.477, 2.543, 12s4.478, 10, 10.002, 10c8.396, 0, 10.249-7.85, 9.426-11.748l-9.426, -0.013z" fill="#4285F4"/>
-                      </svg>
-                    </button>
-                  </>
-                )}
-              </form>
-            </div>
-            
-            <div className="w-2/5 bg-gray-100 rounded-xl flex items-center justify-center p-4">
-              <img 
-                src={require("./assets/images/login.png")} 
-                alt="Secure login illustration" 
-                className="w-full h-full object-contain object-center"
-              />
-            </div>
+            </motion.div>
+          </div>
+
+          <div className="flex gap-4 items-center text-sm text-stone-500">
+            <span>🔒 Secure login</span>
+            <span>•</span>
+            <span>⚡ Fast access</span>
+            <span>•</span>
+            <span>🎓 Campus only</span>
           </div>
         </div>
       </div>
-    </PageTransition>
+
+      {/* Right panel — Form */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
+          {/* Mobile logo */}
+          <div className="flex items-center gap-3 mb-10 lg:hidden">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-lg font-bold">
+              M
+            </div>
+            <span className="font-bold text-xl">MealMate</span>
+          </div>
+
+          {/* Mode toggle */}
+          <div className="flex bg-stone-900 rounded-xl p-1 mb-8">
+            <button
+              onClick={() => { setIsAdminMode(false); setUniversityId(''); setPassword(''); setLoginStatus({ message: '', isError: false }); }}
+              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+                !isAdminMode
+                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg'
+                  : 'text-stone-400 hover:text-stone-200'
+              }`}
+            >
+              Student Login
+            </button>
+            <button
+              onClick={() => { setIsAdminMode(true); setUniversityId(''); setPassword(''); setLoginStatus({ message: '', isError: false }); }}
+              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+                isAdminMode
+                  ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg'
+                  : 'text-stone-400 hover:text-stone-200'
+              }`}
+            >
+              Admin Login
+            </button>
+          </div>
+
+          <h1 className="text-3xl font-bold mb-2">
+            {isAdminMode ? 'Admin Portal' : 'Welcome Back'}
+          </h1>
+          <p className="text-stone-400 mb-8">
+            {isAdminMode ? 'Sign in to manage the canteen.' : 'Sign in to your campus cafe account.'}
+          </p>
+
+          {loginStatus.message && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`p-4 rounded-xl mb-6 text-sm font-medium border ${
+                loginStatus.isError
+                  ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                  : 'bg-green-500/10 text-green-400 border-green-500/20'
+              }`}
+            >
+              {loginStatus.message}
+            </motion.div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-stone-300 mb-2">
+                {isAdminMode ? 'Admin ID' : 'University ID'}
+              </label>
+              <input
+                type="text"
+                placeholder={isAdminMode ? 'ADMIN001' : 'CCE23CS095'}
+                className="input-field"
+                value={universityId}
+                onChange={(e) => setUniversityId(e.target.value)}
+                id="university-id"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-stone-300 mb-2">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="input-field pr-12"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  id="password"
+                />
+                <button
+                  type="button"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-200 transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" className="rounded border-stone-600 bg-stone-800" />
+                <span className="text-sm text-stone-400">Remember me</span>
+              </label>
+              <button type="button" className="text-sm text-orange-400 hover:text-orange-300 transition-colors">
+                Forgot password?
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`w-full py-4 rounded-xl font-semibold text-white transition-all duration-200 active:scale-95 disabled:opacity-50 ${
+                isAdminMode
+                  ? 'bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 hover:shadow-lg hover:shadow-red-500/25'
+                  : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 hover:shadow-lg hover:shadow-orange-500/25'
+              }`}
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Signing in...
+                </span>
+              ) : (
+                isAdminMode ? 'Sign in as Admin' : 'Sign In'
+              )}
+            </button>
+          </form>
+
+          {!isAdminMode && (
+            <p className="text-center text-sm text-stone-500 mt-6">
+              Don't have an account?{' '}
+              <button onClick={() => navigate('/signup')} className="text-orange-400 hover:text-orange-300 font-medium transition-colors">
+                Sign up
+              </button>
+            </p>
+          )}
+
+          <button
+            onClick={() => navigate('/')}
+            className="mt-6 w-full text-center text-sm text-stone-600 hover:text-stone-400 transition-colors"
+          >
+            ← Back to Home
+          </button>
+        </motion.div>
+      </div>
+    </div>
   );
 };
 

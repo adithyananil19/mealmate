@@ -1,300 +1,321 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import PageTransition from './PageTransition';
-
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 const SignUpPage = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [universityId, setUniversityId] = useState("");
-  const [userType, setUserType] = useState("regular");
-  const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    universityId: '',
+    userType: 'regular',
+    password: '',
+    confirmPassword: '',
+  });
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setSuccessMessage('');
 
-  const toggleMenu = () => {
-    setIsMenuCollapsed(!isMenuCollapsed);
-  };
+    const { name, email, universityId, password, confirmPassword } = formData;
 
-  // Then replace your handleSubmit function with this:
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setIsLoading(true);
-  setErrorMessage("");
-
-  if (!name || !email || !password || !confirmPassword) {
-    setErrorMessage("Please fill in all required fields");
-    setIsLoading(false);
-    return;
-  }
-
-  if (password !== confirmPassword) {
-    setErrorMessage("Passwords do not match!");
-    setIsLoading(false);
-    return;
-  }
-
-  if (!agreeToTerms) {
-    setErrorMessage("Please agree to the terms and policies");
-    setIsLoading(false);
-    return;
-  }
-
-  const userData = { name, email, universityId, userType, password };
-
-  try {
-    const response = await fetch("http://localhost:5000/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userData),
-    });
-
-    const data = await response.json();
-    if (response.ok) {
-      alert("Signup successful!");
-      window.location.href = "/login"; // Redirect to login page
-    } else {
-      setErrorMessage(data.message || "Error during signup. Please try again.");
+    if (!name || !email || !universityId || !password || !confirmPassword) {
+      setErrorMessage('Please fill in all required fields');
+      return;
     }
-  } catch (error) {
-    console.error("Error signing up:", error);
-    setErrorMessage("Connection error. Please check your internet and try again.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+    if (password !== confirmPassword) {
+      setErrorMessage('Passwords do not match');
+      return;
+    }
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters');
+      return;
+    }
+    if (!agreeToTerms) {
+      setErrorMessage('Please agree to the terms and policies');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          universityId,
+          userType: formData.userType,
+          password,
+        }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccessMessage('Account created! Redirecting to login...');
+        setTimeout(() => navigate('/login'), 1500);
+      } else {
+        setErrorMessage(data.message || 'Error during signup. Please try again.');
+      }
+    } catch {
+      setErrorMessage('Connection error. Please check your internet and try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <PageTransition>
-      <div className="min-h-screen bg-rose-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-4xl bg-white rounded-3xl shadow-lg overflow-hidden flex">
-          {/* Left sidebar */}
-          <div className={`${isMenuCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-gray-200 p-6 flex flex-col transition-all duration-300 relative`}>
-            <div className="flex items-center mb-12">
-              <button className="mr-4" onClick={toggleMenu}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="3" y1="12" x2="21" y2="12"></line>
-                  <line x1="3" y1="6" x2="21" y2="6"></line>
-                  <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-              </button>
-              {!isMenuCollapsed && (
-                <div className="flex items-center">
-                  <div className="h-8 w-8 bg-gray-800 rounded-full flex items-center justify-center relative">
-                    <div className="h-6 w-6 bg-white rounded-full absolute right-0 bottom-0 mr-1 mb-1"></div>
-                    <span className="text-white font-bold relative z-10">C</span>
-                  </div>
-                  <div className="ml-2">
-                    <span className="font-semibold text-gray-800">CAMPUS</span>
-                    <span className="block text-gray-500 text-xs">CAFE</span>
-                  </div>
-                </div>
-              )}
+    <div className="min-h-screen bg-stone-950 flex font-outfit">
+      {/* Left panel */}
+      <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-gradient-to-br from-stone-900 via-stone-900 to-stone-950">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-orange-600/25 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-amber-600/15 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3" />
+
+        <div className="relative z-10 flex flex-col justify-between p-12 w-full">
+          <button onClick={() => navigate('/')} className="flex items-center gap-3 w-fit">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-xl font-bold">
+              M
             </div>
-            
-            {/* Navigation items */}
-            <nav className="flex flex-col space-y-4 mt-8">
-              <a href="/login" className="flex items-center text-gray-600 font-medium relative">
-                <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                </svg>
-                {!isMenuCollapsed && "Sign In"}
-              </a>
-              <a href="/signup" className="flex items-center text-orange-400 font-medium relative group">
-                <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                {!isMenuCollapsed && "Sign Up"}
-                <div className="w-1 h-8 bg-orange-400 absolute -right-6 rounded-l"></div>
-              </a>
-            </nav>
-          </div>
-          
-          {/* Main content */}
-          <div className="flex-1 p-8 flex">
-            {/* Left side - Image */}
-            <div className="w-2/5 bg-gray-100 rounded-xl flex items-center justify-center py-20 px-0 mr-8 h-full">
-              <img 
-                src={require(".//assets/images/signup.png")} 
-                alt="Sign up illustration" 
-                className="w-full h-full object-contain  object-center"
-              />
+            <div>
+              <div className="font-bold text-xl">MealMate</div>
+              <div className="text-xs text-stone-500 tracking-widest uppercase">Campus Cafe</div>
             </div>
-            
-            {/* Right side - Form */}
-            <div className="w-3/5">
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">Sign up</h1>
-              <p className="text-gray-600 mb-6">Let's get you all set up so you can access your personal account.</p>
-              
-              {/* Signup form */}
-              <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm mb-1">Full Name</label>
-                    <input 
-                      type="text" 
-                      placeholder="John Doe" 
-                      className="w-full p-2 border border-gray-300 rounded-md"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm mb-1">User Type</label>
-                    <div className="relative">
-                      <select 
-                        className="w-full p-2 border border-gray-300 rounded-md appearance-none bg-white"
-                        value={userType}
-                        onChange={(e) => setUserType(e.target.value)}
-                      >
-                        <option value="non-regular">Non-Regular</option>
-                        <option value="regular">Regular</option>
-                        
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm mb-1">Email</label>
-                    <input 
-                      type="email" 
-                      placeholder="john.doe@gmail.com" 
-                      className="w-full p-2 border border-gray-300 rounded-md"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm mb-1">University ID</label>
-                    <input 
-                      type="text" 
-                      placeholder="CCE23CS000" 
-                      className="w-full p-2 border border-gray-300 rounded-md"
-                      value={universityId}
-                      onChange={(e) => setUniversityId(e.target.value)}
-                    />
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-sm mb-1">Password</label>
-                  <div className="relative">
-                    <input 
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      className="w-full p-2 border border-gray-300 rounded-md"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <button 
-                      type="button" 
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                      onClick={togglePasswordVisibility}
-                    >
-                      {showPassword ? <EyeOff size={20} className="text-gray-500" /> : <Eye size={20} className="text-gray-500" />}
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="mb-6">
-                  <label className="block text-sm mb-1">Confirm Password</label>
-                  <div className="relative">
-                    <input 
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Confirm your password"
-                      className="w-full p-2 border border-gray-300 rounded-md"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
-                    <button 
-                      type="button" 
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                      onClick={toggleConfirmPasswordVisibility}
-                    >
-                      {showConfirmPassword ? <EyeOff size={20} className="text-gray-500" /> : <Eye size={20} className="text-gray-500" />}
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="flex items-center mb-6">
-                  <input 
-                    type="checkbox" 
-                    id="terms" 
-                    className="mr-2"
-                    checked={agreeToTerms}
-                    onChange={(e) => setAgreeToTerms(e.target.checked)} 
-                  />
-                  <label htmlFor="terms" className="text-sm text-gray-600">
-                    I agree to all the <span className="text-red-400">Terms</span> and <span className="text-red-400">Privacy Policies</span>
-                  </label>
-                </div>
-                
-                {/*Then replace your submit button with this:*/}
-                <div className="mb-2">
-                  {errorMessage && (
-                    <div className="p-2 mb-4 text-sm text-red-700 bg-red-100 rounded-md">
-                      {errorMessage}
-                    </div>
-                  )}
-                  <button 
-                    type="submit" 
-                    className="w-full bg-blue-600 text-white p-3 rounded-md font-medium mb-4 flex items-center justify-center"
-                    disabled={isLoading}
+          </button>
+
+          <div>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+            >
+              <div className="text-7xl mb-8">🎓</div>
+              <h2 className="text-4xl font-bold leading-tight mb-4">
+                Join the Campus<br />Cafe Revolution
+              </h2>
+              <p className="text-stone-400 text-lg leading-relaxed">
+                Create your student account and start pre-ordering meals. No more waiting in long queues!
+              </p>
+
+              <div className="mt-8 space-y-3">
+                {['Browse daily menu 🍽️', 'Place orders in advance 🛒', 'Get unique order codes 🎫', 'Skip the queue ⚡'].map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 + i * 0.1 }}
+                    className="flex items-center gap-3 text-stone-300"
                   >
-                    {isLoading ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Creating account...
-                      </>
-                    ) : (
-                      "Create account"
-                    )}
-                  </button>
-                </div>
-                
-                <p className="text-center text-sm text-gray-600 mb-6">
-                  Already have an account? <a href="/login" className="text-blue-600">Login</a>
-                </p>
-                
-                <div className="text-center text-sm text-gray-500 mb-4">Or Sign up with</div>
-                
-                <button type="button" className="w-full border border-gray-300 p-3 rounded-md flex items-center justify-center">
-                  <svg width="20" height="20" viewBox="0 0 24 24" className="text-center">
-                    <path d="M12.545, 10.239v3.821h5.445c-0.712, 2.315-2.647, 3.972-5.445, 3.972-3.332, 0-6.033-2.701-6.033-6.032s2.701-6.032, 6.033-6.032c1.498, 0, 2.866, 0.549, 3.921, 1.453l2.814-2.814C17.503, 2.988, 15.139, 2, 12.545, 2 7.021, 2, 2.543, 6.477, 2.543, 12s4.478, 10, 10.002, 10c8.396, 0, 10.249-7.85, 9.426-11.748l-9.426, -0.013z" fill="#4285F4"/>
-                  </svg>
-                </button>
-              </form>
-            </div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                    {item}
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
           </div>
+
+          <p className="text-stone-600 text-sm">
+            Already have an account?{' '}
+            <button onClick={() => navigate('/login')} className="text-orange-400 hover:text-orange-300 transition-colors">
+              Sign in →
+            </button>
+          </p>
         </div>
       </div>
-    </PageTransition>
+
+      {/* Right panel — Form */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12 overflow-y-auto">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
+          {/* Mobile logo */}
+          <div className="flex items-center gap-3 mb-8 lg:hidden">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-lg font-bold">
+              M
+            </div>
+            <span className="font-bold text-xl">MealMate</span>
+          </div>
+
+          <h1 className="text-3xl font-bold mb-2">Create Account</h1>
+          <p className="text-stone-400 mb-8">Set up your campus cafe account in seconds.</p>
+
+          {errorMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 rounded-xl mb-6 text-sm font-medium bg-red-500/10 text-red-400 border border-red-500/20"
+            >
+              {errorMessage}
+            </motion.div>
+          )}
+          {successMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 rounded-xl mb-6 text-sm font-medium bg-green-500/10 text-green-400 border border-green-500/20"
+            >
+              ✅ {successMessage}
+            </motion.div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-stone-300 mb-2">Full Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="John Doe"
+                  className="input-field"
+                  value={formData.name}
+                  onChange={handleChange}
+                  id="full-name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-300 mb-2">User Type</label>
+                <select
+                  name="userType"
+                  className="input-field"
+                  value={formData.userType}
+                  onChange={handleChange}
+                  id="user-type"
+                >
+                  <option value="regular">Regular</option>
+                  <option value="non-regular">Non-Regular</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-stone-300 mb-2">Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="john@campus.edu"
+                  className="input-field"
+                  value={formData.email}
+                  onChange={handleChange}
+                  id="email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-300 mb-2">University ID</label>
+                <input
+                  type="text"
+                  name="universityId"
+                  placeholder="CCE23CS000"
+                  className="input-field"
+                  value={formData.universityId}
+                  onChange={handleChange}
+                  id="university-id-signup"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-stone-300 mb-2">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  placeholder="Min. 6 characters"
+                  className="input-field pr-12"
+                  value={formData.password}
+                  onChange={handleChange}
+                  id="password-signup"
+                />
+                <button
+                  type="button"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-200 transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-stone-300 mb-2">Confirm Password</label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  placeholder="Repeat your password"
+                  className="input-field pr-12"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  id="confirm-password"
+                />
+                <button
+                  type="button"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-200 transition-colors"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer pt-1">
+              <input
+                type="checkbox"
+                className="mt-0.5 rounded border-stone-600 bg-stone-800 accent-orange-500"
+                checked={agreeToTerms}
+                onChange={(e) => setAgreeToTerms(e.target.checked)}
+                id="terms"
+              />
+              <span className="text-sm text-stone-400">
+                I agree to the{' '}
+                <span className="text-orange-400">Terms of Service</span> and{' '}
+                <span className="text-orange-400">Privacy Policy</span>
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="btn-primary w-full py-4 text-base mt-2"
+              id="create-account-btn"
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Creating account...
+                </span>
+              ) : (
+                'Create Account →'
+              )}
+            </button>
+          </form>
+
+          <p className="text-center text-sm text-stone-500 mt-6">
+            Already have an account?{' '}
+            <button onClick={() => navigate('/login')} className="text-orange-400 hover:text-orange-300 font-medium transition-colors">
+              Sign in
+            </button>
+          </p>
+        </motion.div>
+      </div>
+    </div>
   );
 };
 

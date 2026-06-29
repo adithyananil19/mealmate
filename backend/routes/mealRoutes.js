@@ -1,12 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const mealController = require("../controllers/mealController");
+const auth = require("../middleware/auth");
 
-// ✅ Apply `uploadMealPhoto` middleware for image handling
+// Public — anyone can view meals
 router.get("/", mealController.getMeals);
 router.get("/:id", mealController.getMealById);
-router.post("/", mealController.uploadMealPhoto, mealController.createMeal);
-router.put("/:id", mealController.uploadMealPhoto, mealController.updateMeal);
-router.delete("/:id", mealController.deleteMeal);
+
+// Admin only — create, update, delete
+router.post("/", auth, mealController.createMeal);
+router.put("/:id", auth, mealController.updateMeal);
+router.delete("/:id", auth, mealController.deleteMeal);
 
 module.exports = router;
